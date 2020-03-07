@@ -1,0 +1,410 @@
+---
+title: "Cancer cells"
+author: "Timothy Keyes"
+date: 2020 -
+output: 
+  github_document:
+    toc: true
+---
+
+```{r include = FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r message=FALSE, warning=FALSE}
+# Libraries
+library(tidyverse)
+
+# If you will not be providing answers, simply delete the following lines.
+# Parameters
+  # File where generated answers are saved, by default in the home directory
+file_answers <- "~/Desktop/answers.rds"
+  # Save answers
+SAVE_ANSWERS <- TRUE
+
+
+
+### Parameters
+stem_cell_path <- file.path("~", "Desktop", "healthy_pops", "01_HSC.fcs")
+
+MARKERS <- 
+  c(
+    'CD19', 
+    'CD20', 
+    'CD34', 
+    'CD38', 
+    'IgMi', 
+    'IgMs', 
+    'CD179a', 
+    'CD179b',
+    'CD127', 
+    'Tdt',
+    'CD45'
+  )
+
+POPULATIONS <- 
+  c(
+    "HSC", 
+    "Progenitor_1", 
+    "Progenitor_2", 
+    "Progenitor_3", 
+    "Pre_Pro_B", 
+    "Pro_B1", 
+    "Pro_B2", 
+    "Pre_B1", 
+    "Pre_B2", 
+    "Early_Progenitors", 
+    "Late_Progenitors", 
+    "Immature_B1", 
+    "Immature_B2", 
+    "Mature_B", 
+    "Mature_Non_B"
+  )
+  
+
+
+```
+
+## Challenge scenario
+
+Imagine that you're a first-year graduate student who just joined a new lab that studies cancer. Specifically, your lab studies leukemia, or cancer of the blood and bone marrow. You're excited to get started with your research as the group's new biomedical data scientist! 
+
+As your first task, your advisor has asked you to look into some of the analyses that were published a few years ago in [this seminal paper](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5953207/) in the journal _Nature Medicine_. The group that published this work used a new technology called ["mass cytometry"](https://en.wikipedia.org/wiki/Mass_cytometry) to measure proteins on millions of cells that were collected from pediatric patients with leukemia. They did a variety of analyses on these measurements, and you're interested in delving a bit into their methodology and results for your own project.
+
+## Reading in unfamiliar file types
+
+__q1.1__ You're able to download some of the data files that the _Nature Medicine_ authors used in their original analyses. They are called [".fcs" files](https://en.wikipedia.org/wiki/Flow_Cytometry_Standard), a file type that you've never worked with before.
+
+Download the file called "01_HSC.fcs" from Box and store in a directory that is not a GitHub repository. Try reading in the .fcs file using the `readr::read_table()` function that you're familiar with from the `tidyverse`, and store your results in a variable of your choosing. What is your result? Try inspecting it using `View()`, `glimpse()`, `str()`, or any other method you'd like. Describe your results.  
+
+```{r}
+q1.1 <- 
+  stem_cell_path %>% 
+  readr::read_table() %>% 
+  as_tibble()
+
+# Print results
+q1.1
+
+
+```
+
+From above, we can see that reading in a .fcs file gives us a lot of nonsense. You can see that there's a weird 
+header that `readr` doesn't like to parse, and there are a decent number of non-standard characters that get a weird representation in the RStudio console. In general, .fcs files don't play well with standard `readr` functions. 
+
+There are some specific reasons for this that have to do with how the file is formatted - .fcs stands for "flow cytometry standard," a specialized 
+text file type that was developed by the International Society for the Advancement of Cytometry. Specifically, .fcs files have a bunch of weird character headings and other metadata stored alongside the data that you usually want, and most of that metadata is a bit challenging to parse. Many biological applications have their own specific file type, and many of them are fairly complicated. 
+
+
+
+__q1.2__ You notice that reading in .fcs files is a bit complicated because of all the additional metadata they store (in addition to the data you actually want). You remember your advisor mentioning a website called [Bioconductor](http://bioconductor.org/) where bioinformaticians and quantitative biologists publish software packages for other researchers to use. You wonder if there's a package somewhere on Bioconductor that could help you read in this .fcs file. 
+
+Look through Bioconductor and list at least two packages that can process .fcs files. What are these packages' names? 
+
+Hint: Google is your friend! Remember, you're working with flow cytometry and mass cytometry data. 
+
+There are many packages that can read in .fcs files and perform various computations with them, but the most well-known ones are the following: 
+
+* `flowCore`
+* `cytofkit`
+
+
+
+__q1.3__ You find the package `flowCore` on Bioconductor and decide to use it for the rest of your analysis. Figure out how to download this package from Bioconductor, and attach it to your R Session. 
+
+Hint: You may be prompted to update some of the packages on your computer after `flowCore` is installed. You can update them if you want, but if you just want to continue with the challenge, just type `n` into the console. 
+
+```{r}
+if (!requireNamespace("BiocManager", quietly = TRUE)) {
+  install.packages("BiocManager")
+}
+
+BiocManager::install("flowCore")
+library(flowCore)
+
+```
+
+__q1.4__ Use `flowCore`'s `read.FCS()` function to read your 01_HSC.fcs file into a variable called `q1.4`. What does the result look like? Inspect the `class()` of `q1.4`. What does `flowCore`'s documentation tell you about what `q1.4` is? 
+
+```{r}
+q1.4 <- 
+  stem_cell_path %>% 
+  read.FCS(transformation = FALSE, truncate_max_range = FALSE)
+
+class(q1.4)
+
+
+```
+
+`q1.4` is a data structure called a "flowFrame", which is a type of annotated `dataFrame` specifically developed for storing flow or mass cytometry data. There are 3 main parts to an object of class `flowFrame`: 
+
+1. A numeric matrix of the raw measurement values where each row represents an event (one cell) and each column represents one parameter (a protein measurement).
+
+1. Annotations (aka short descriptions) for each of the parameters (e.g., the measurement channels, stains, dynamic range)
+
+1. Some additional annotation provided through "keywords" in the FCS file (most of this is junk).
+
+__q1.5__ Read the documentation for the `flowCore::exprs()` function, and briefly describe what it does. Use  `flowCore::exprs()` to extract the most interesting information from `q1.4`, and convert 
+the result into a tibble. Store this tibble into the variable `q1.5`.
+
+```{r}
+q1.5 <- 
+  q1.4 %>% 
+  exprs() %>% 
+  as_tibble()
+
+
+
+```
+
+The `exprs()` function extracts the numeric matrix component from a flowFrame. 
+
+
+
+
+__q1.6__ After reading in `q1.5`, it's apparent to you that each row in the tibble represents a single cell...based on the column names, what do you think the columns represent? Try googling a few of the column names to get a sense of what they represent.
+
+Each of the column names of the dataset represents the name of a specific protein that the authors measured when they were collecting their data on the mass cytometer. Thus, `q1.5` represents the protein expression of each cell along its rows for each protein along its columns. 
+
+For instance, CD45 is a surface marker protein expressed on all cells of the hematopoietic (blood) lineage, whereas CD34 is a protein expressed only on hematopoietic stem cells (and other primitive cell types). So, it makes sense that a lab studying blood cancer might include these markers in their experiments. 
+
+
+## Functional programming, biological data, and `purrr` 
+
+You perform some additional data wrangling with some of the .fcs files you found on the website of the lab whose work you're investigating. Ultimately, you end up with the two data files saved on Box, called "healthy_cells.rds" and "cancer_cells.rds". 
+
+"healthy_cells.rds" contains a tibble in which each row represents a distinct subpopulation of healthy blood cells. The populations are provided in the order that they mature in the bone marrow (row 1 comes before row 2 and so on), so you can think of the data as having a temporal element (similar to a time series).  
+
+"cancer_cells.rds" contains a tibble in which each row represents a cancer cell population (there are 1000 cells in each population). We'll talk more about the cancer data later, so don't worry too much about it now.
+
+Download both files and save them into a directory that is not a GitHub repository. 
+
+__q2.1__ Read both files into variables called `healthy_cells` and `cancer_cells`, respectively. 
+
+```{r}
+healthy_cells <- 
+  readRDS("~/GitHub/dcl-2020-01/tim/c01-own/data/challenge_healthy_cells.rds")
+
+cancer_cells <- 
+  readRDS("~/GitHub/dcl-2020-01/tim/c01-own/data/challenge_cancer_cells.rds")
+```
+
+__q2.2__ Using the descriptions above and your own tidyverse sleuthing skills, try to understand `healthy_cells` and `cancer_cells`. What does the `data` column in `healthy_cells` (or `cancer_cells`) represent? 
+
+Hint: Do the column names in each element of `healthy_cells$data` remind you at all of `q1.5`? 
+
+`healthy_cells` contains a list-column in `data` in which each column represents one of several protein measurements and each row represents a single cell, as before. So, it is a nested tibble! `cancer_cells` contains a very similar data structure, except for cancer cells (not healthy ones).
+
+__q2.3__ You're interested in learning a bit more about each of the cell populations in `healthy_cells`. Add a column called `cell_number` to `healthy_cells` that represents the number of cells in each subpopulation. Store the result as a new tibble named `q2.3`.
+
+```{r}
+q2.3 <- 
+  healthy_cells %>%
+  mutate(cell_number = map_int(data, nrow))
+q2.3
+```
+
+
+__q2.4__ Visualize the number of cells for each subpopulation in `q2.3` as an EDA plot. What conclusions can you draw? 
+
+```{r}
+q2.3 %>%
+  mutate(
+    population = 
+      factor(population, levels = population) %>% 
+      fct_rev()
+  ) %>% 
+  ggplot(aes(x = population, y = cell_number)) + 
+  geom_col() + 
+  coord_flip()
+
+```
+
+From the plot above, we can see that certain subpopulations are much more rare than others - for instance, 
+HSCs (hematopoeitic stem cells) are relatively rare in the bone marrow, but mature cells ("Mature_B" and "Mature_Non_B") are much more common. 
+
+__q2.5__ Biological data often require a bit of pre-processing before they're ready for analysis. For mass cytometry data, it's customary to perform an "Arcsinh transformation" of each measurement after dividing by 5. For example, pre-processing the value `100` would look like the following:
+
+```{r}
+asinh(100 / 5)
+```
+
+Transform all of the protein measurements in `q2.3` using this strategy and save your result in a tibble called `q2.5`. 
+
+```{r}
+q2.5 <- 
+  q2.3 %>%
+  mutate(
+    data = 
+      data %>% 
+      map(~ mutate_all(., ~ asinh(. / 5)))
+  ) 
+
+
+```
+
+
+
+__q2.6__ You're interested in applying a clustering algorithm to your data, but it requires that you know the mean expression of each protein in each population from `q2.5`. Add a column to `q2.5` called `means` in which each entry is a named vector of means for each protein in the `data` column, and store the result in `q2.6`. 
+
+Hint: If you're stuck, trying using `purrr::map()` across all of the tibbles in `q2.5$data` inside of a call to `mutate()`
+
+```{r}
+q2.6 <- 
+  q2.5 %>% 
+  mutate(
+    means = map(
+      data, 
+      ~ (.) %>% 
+        summarize_all(mean) %>% 
+        pivot_longer(everything()) %>% 
+        deframe()
+    )
+  )
+
+```
+
+__q2.7__ The covariance matrix of a dataset can be computed with the following function: 
+
+```{r}
+get_cov <- function(data) {
+  Sx <- cov(data)
+  Sx <- solve(Sx)
+  return(Sx)
+}
+
+#example: 
+get_cov(q2.6$data[[1]])
+```
+
+
+Your clustering algorithm also requires you to calculate the covariance matrix for each tibble in the `data` column of `q2.6`.  Use `get_cov()` Add a column to `q2.6` called `covariance` in which each entry the covariance matrix of the corresponding tibble in `q2.6`'s `data` column. Store the result in `q2.7`. 
+
+```{r}
+q2.7 <- 
+  q2.6 %>% 
+  mutate(covariance = map(data, get_cov))
+
+```
+
+__q2.8 (optional)__ Phew! That was a lot of `purrr`. You're happy that this dataset is relatively small, so the compute time for the wrangling above wasn't too bad. But you also know that some biological datasets can be quite large. Look online for some documentation about the `furrr` package: if you had a large dataset, how might using `furrr` make your life easier? 
+
+The `furrr` package is a useful tool if you want to do parallel computing without changing much of your `purrr` syntax: it uses the `futures` package to tell your computer to divvy up each of the computations in a `purrr:map_*()` function so that they can happen at the same time on different parts of your computer (which makes the computation overall much faster). 
+
+With a very large dataset, `furrr` could make your life easier by speeding up your computations so that you don't have to wait as long for your results. Nice! 
+
+
+## Exploratory data analysis in cancer
+
+__q3__ The authors of the original paper claimed that they were able to use a clustering algorithm to "align cancer cells with their most similar healthy subpopulation" in order to learn how cancer cells relate to their native lineage in the healthy body. 
+
+The tibble `cancer_cells` that you read in earlier contains 1000 cancer cells from each "aligned" subpopulation of healthy cells. Do some EDA on the cancer cells and make a presentation plot that illustrates the similarity (or lack of similarity) of the cell populations in `healthy_cells` and `cancer_cells`. 
+
+Getting the whole picture will probably require you to make a few plots. At the very least, look into the most important proteins for this lineage: `CD19`, `CD34`, `CD38`, and `CD45`. Also, note that the authors claimed that the `Pro_B2` and `Pre_B1` populations were the most important for the biology they were interested in. Why might that make sense (or why not)?
+
+Do you agree with the authors' original statement that the cancer cells and healthy cells are similar?
+
+Hint: Remember to use `q2.5` (or a later tibble) to plot the healthy values, since we've transformed them! `cancer_cells` is already arcsinh pre-transformed for you. 
+
+```{r, out.width="100%"}
+q3 <- 
+  q2.7 %>% 
+  select(population, healthy = data) %>%
+  left_join(
+    cancer_cells %>% 
+      rename(cancer = data), 
+    by = "population"
+  ) %>% 
+  mutate(population = factor(population, levels = POPULATIONS)) %>% 
+  pivot_longer(
+    cols = c(healthy, cancer), 
+    names_to = "condition", 
+    values_to = "data"
+  ) %>% 
+  unnest(cols = data) %>% 
+  pivot_longer(
+    cols = c(-population, -condition), 
+    names_to = "channel", 
+    values_to = "value"
+  ) %>% 
+  group_by(population, condition, channel) %>% 
+  summarize(
+    median = median(value), 
+    upper = quantile(x = value, probs = 0.75), 
+    lower = quantile(x = value, probs = 0.25)
+  ) %>% 
+  ungroup()
+
+cancer_plot <- function(my_channel) { 
+  q3 %>% 
+    dplyr::filter(channel == my_channel) %>% 
+    ggplot(aes(x = population, y = median, color = condition)) + 
+    geom_line(aes(group = condition), size = 1.5) + 
+    geom_crossbar(
+      aes(ymin = lower, ymax = upper, fill = condition), 
+      alpha = 0.3, 
+      color = NA
+    ) +
+    geom_point(aes(fill = condition), shape = 21, color = "black", size = 3) + 
+    geom_text(
+      aes(x = population, y = median + 1.5), 
+      data = 
+        q3 %>% 
+        dplyr::filter(
+          population %in% c("Pro_B2", "Pre_B1"), 
+          channel == my_channel
+        ) %>% 
+        group_by(channel, population) %>% 
+        summarize(median = mean(median)), 
+      label = "\n↓", 
+      color = "black", 
+      size = 6
+    ) + 
+    labs(
+      title = str_c(my_channel, " expression in cancer and healthy cells"), 
+      subtitle = 
+        "Points indicate medians; crossbars indicate interquartile range",
+      x = NULL, 
+      y = str_c(my_channel, " expression (arbitrary units)"),
+      color = "Condition",
+      fill = "Condition",
+      caption = "Source: Good et al., 2018, Nature Medicine"
+    ) + 
+    theme(
+      axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5), 
+      legend.position = "bottom"
+    )
+}
+
+map(.x = MARKERS, .f = cancer_plot)
+```
+
+
+The plots above are plotted like a time-series because the populations on the x axis are ordered according to which come first in developmental time biologically. Here, we emphasize the medians of the population distributions as well as their inter-quartile ranges in order to get a sense of the central tendency *and* dispersion of the subpopulations. 
+
+In the last 3 plots, we can see that, in most cases, there is at least quite a bit of overlap between the cancer and healthy populations, which suggests that the authors' "alignment" algorithm works fairly well at least for several important markers. However, when we look at CD19, we see that  many of the earlier populations are not similar at all to their healthy counterparts. 
+
+However, we note in each of the plots that the two populations the authors were most interested in (indicated with arrows) always overlapped quite a bit (and often are right on top of one another), suggesting that there might be more validity in these populations than in others that are less of-interest. 
+
+
+
+
+## Answers
+
+To create an RDS file with answers, save all of your solutions in variables such as `q1`, `q2.1`, etc. The following code will create an answer file when you knit the solution.Rmd file. You specify where the answer file is saved using the `file_answers` variable in the parameters.
+
+To provide answers, set `eval=TRUE` in the chunk below.
+If you will not be providing answers, simply delete the following lines.
+
+Save answers.
+
+```{r, eval=FALSE}
+if (SAVE_ANSWERS) {
+  ls(pattern = "^q[1-9][0-9]*(\\.[1-9][0-9]*)*$") %>%
+    str_sort(numeric = TRUE) %>% 
+    set_names() %>% 
+    map(get) %>%
+    discard(is.ggplot) %>%
+    write_rds(file_answers)
+}
+```
