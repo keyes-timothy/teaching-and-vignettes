@@ -13,10 +13,10 @@ Dimensionality reduction is a common method of succinctly visualizing
 single-cell data either to reveal broad trends in how cells are
 distributed in high-dimensional space or to roughly assess data quality
 across multiple experiments or datasets. In this primer, we discuss
-several methods of dimensionality reduction including Principal
-component analysis (PCA), t-distributed stochastic neighborhood
-embedding (tSNE), and uniform manifold approximation and projection
-(UMAP). Example applications of each of these dimensionality reduction
+several methods of dimensionality reduction including **Principal
+component analysis (PCA)**, **t-distributed stochastic neighborhood
+embedding (tSNE)**, and **uniform manifold approximation and projection
+(UMAP)**. Example applications of each of these dimensionality reduction
 approaches to a [recently-published mass cytometry
 dataset](https://www.nature.com/articles/nm.4505) are provided in the
 figures below.
@@ -27,7 +27,7 @@ Principal Component Analysis (PCA) is one of the most commonly-used
 dimensionality reduction techniques and is often the first algorithm
 applied to new high-dimensional datasets. PCA reduces the dimensionality
 of an input dataset by recombining its variables into so-called
-principal components (PCs), a set of new, uncorrelated variables that
+*principal components* (PCs), a set of new, uncorrelated variables that
 are rank-ordered by the amount of variance from the original data that
 they explain. Thus, principal component 1 (PC1) explains the largest
 amount of variance from the input dataset, principal component 2 (PC2)
@@ -50,8 +50,8 @@ mass cytometry (for an example of this approach, see [this
 study](https://doi.org/10.1016/j.cell.2015.05.047)).
 
 Both because of its rapid compute time (due to its relationship with a
-linear algebra concept called the singular value decomposition) and lack
-of tuning parameters, PCA is an exceedingly convenient tool for
+linear algebra concept called the *singular value decomposition*) and
+lack of tuning parameters, PCA is an exceedingly convenient tool for
 analyzing broad patterns within a dataset.23 For instance, the EuroFlow
 Consortium recently used PCA to develop a highly-sensitive method for
 detecting minimal residual disease in B-cell precursor acute
@@ -74,15 +74,17 @@ common properties of biological data, dimensionality-reduction
 algorithms that can accommodate non-linear relationships are often used
 to detect more subtle relationships than those represented by PCA.  
 ![PCA applied to 3,000 B-cell leukemia cells from 3 different patients.
-Note that the patients fail to separate from one completely in PCA
-space.](Figure_3a.png)
+The x axis represents the first principal component and the y axis
+represents the second principal component, both of which are linear
+combinations of the data’s original variables. Note that the patients
+fail to separate from one completely in PCA space.](Figure_3a.png)
 
 ## T-distributed Stochastic Neighbor Embedding (tSNE).
 
 Although PCA is limited to the detection of linear patterns, not all
 dimensionality reduction algorithms are. The first of the non-linear
-algorithms we will discuss is t-distributed stochastic neighbor
-embedding (t-SNE; often also called “viSNE” when used for
+algorithms we will discuss is **t-distributed stochastic neighbor
+embedding** (t-SNE; often also called “viSNE” when used for
 visualization). The t-SNE algorithm has been implemented in most
 programming languages commonly used for scientific computing including
 R, Python, and MATLAB. In addition, it is available for use as a
@@ -185,8 +187,10 @@ using different t-SNE hyperparameters:
 
 ![t-SNE applied to 3,000 B-cell leukemia cells from 3 different
 patients. Note that the orientation and relative distances between cells
-from distinct patients are not consistent across different hyperparamter
-choices.](Figure_3b.png)
+from distinct patients are not consistent across different
+hyperparameter choices. Unlike PCA, t-SNE axes don’t have an intuitive
+interpretation relative to the original input variables of the
+dataset.](Figure_3b.png)
 
 ## Uniform Manifold Estimation and Projection (UMAP).
 
@@ -194,15 +198,15 @@ While t-SNE is the most commonly used non-linear dimensionality
 reduction technique in high-dimensional cytometry data analysis, it is
 limited to analyzing a relatively small number of cells due to its slow
 computation time (which scales quadratically with the number of cells
-being analyzed). Due to this and other constraints on t-SNE’s
-performance, an algorithm called Uniform Manifold Approximation and
-Projection (UMAP) was recently developed as an alternative
-dimensionality reduction approach. Because UMAP was so recently
-developed, there are limited examples of its application to the study of
-cancer biology specifically; however, UMAP is becoming increasingly
-widespread in the field of bioinformatics in general, which is why it
-warrants discussion here. UMAP has been implemented as software packages
-in both Python and R.
+being analyzed in the most common implementations). Due to this and
+other constraints on t-SNE’s performance, an algorithm called **Uniform
+Manifold Approximation and Projection (UMAP)** was recently developed as
+an alternative dimensionality reduction approach. Because UMAP was so
+recently developed, there are limited examples of its application to the
+study of cancer biology specifically; however, UMAP is becoming
+increasingly widespread in the field of bioinformatics in general, which
+is why it warrants discussion here. UMAP has been implemented as
+software packages in both Python and R.
 
 Like t-SNE, UMAP seeks to represent the high-dimensional structure of an
 input data matrix in low-dimensional space such that local relationships
