@@ -1,0 +1,38 @@
+---
+title: "any() vs. all()"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+A classmate recently asked me what the difference is between the `any()` and `all()` functions in R. This is a quick demo for how they work! 
+
+Both `any()` and `all()` are functions that accept boolean vectors and return a single boolean value. 
+
+`any()` will check to see if any single one of the values in the vector is `TRUE` - if so, it will return `TRUE`. 
+
+```{r}
+my_values <- c(1, 2, 3, 4, 5)
+
+#This will be TRUE for the value 4, and thus will return TRUE overall
+any(my_values == 4)
+```
+
+By comparison, `all()` will check if every single one of the values in the input vector is `TRUE` - if so, it will return `TRUE` (and otherwise will return `FALSE`). 
+
+```{r}
+my_values <- c(1, 2, 3, 4, 5)
+
+#This will be TRUE for the value 4, but will be FALSE everywhere else. So we get FALSE overall...
+all(my_values == 4)
+```
+
+```{r}
+#This will be TRUE for all values in my_values, and thus will be TRUE overall. 
+all(my_values > 0)
+```
+
+Both of these functions can be useful for boolean operations so that you don't have to 
+abuse many `&` or `|` statements. Fantastic! 
